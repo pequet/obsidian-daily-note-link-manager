@@ -30,7 +30,7 @@ Root/
 -   **`Core`:** Contains the stable, foundational elements of the system.
 -   **`Projects`:** A collection of modular "plugins" that extend the `Core`. This public repository is part of a Project called `Obsidian`.
 
-### Level 2: The `MVC` Pattern in Projects
+### Level 2: The `MVC` Pattern in `Core`
 
 The `Core` is organized using the Model-View-Controller (MVC) architectural pattern:
 
@@ -44,6 +44,8 @@ Core/
 -   **`Models`:** Holds the data, logic, and state.
 -   **`Views`:** Contains all user-facing interfaces. This is where public repositories like the one you're in now reside.
 -   **`Controllers`:** The operational logic that connects `Models` and `Views`.
+
+### Level 3: Inside `Views` 
 
 Putting it all together, this public repository (`obsidian-daily-note-link-manager/`) is located within the `Views` directory, under `Public Repositories`.
 
