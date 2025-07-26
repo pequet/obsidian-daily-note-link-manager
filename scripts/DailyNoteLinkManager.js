@@ -63,6 +63,33 @@ class DailyNoteLinkManager {
     }
 
     /**
+     * Fetches all inbox entries from the same folder that correspond to the date of the current daily note.
+     * @param {TFile} currentFile - The current daily note file.
+     * @param {boolean} debug - Optional. Set to true to enable console logging for debugging.
+     * @returns {string[]} An array of formatted markdown links for the inbox entries.
+     */
+    _getDailyInboxEntries(currentFile, debug = false) {
+        if (!currentFile || !currentFile.parent) {
+            return [];
+        }
+
+        const parentFolder = currentFile.parent;
+        const dailyNoteBasename = currentFile.basename;
+
+        const inboxFiles = parentFolder.children
+            .filter(file =>
+                file.extension === 'md' &&
+                file.basename.startsWith(dailyNoteBasename) &&
+                file.basename.length > dailyNoteBasename.length // Ensure it's not the daily note itself
+            )
+            .sort((a, b) => a.basename.localeCompare(b.basename));
+
+        if (debug) console.log(`Found ${inboxFiles.length} inbox entries for ${dailyNoteBasename}.`);
+
+        return inboxFiles.map(file => `[[${file.path}|${file.basename}]]`);
+    }
+
+    /**
      * Generates the navigation links for the current daily note. This is the main public method.
      * @param {object} context - The context object passed from CustomJS, containing the dataview instance.
      * @param {boolean} [context.debug=false] - Optional. Set to true to enable console logging for debugging.
@@ -94,29 +121,53 @@ class DailyNoteLinkManager {
         const currentIndex = allDailyNotes.findIndex(file => file.path === currentFile.path);
         if (debug) console.log(`Current note index: ${currentIndex}`);
 
-        if (currentIndex === -1) {
-            if (debug) console.log("Error: Could not find current note in the sorted list of daily notes.");
-            return "Could not find current note in the vault's daily notes.";
-        }
-
         const currentNoteDate = window.moment(currentFile.basename, "YYYY-MM-DD");
-        const prevLink = this._createLink(allDailyNotes, currentIndex, -1, currentNoteDate);
-        const nextLink = this._createLink(allDailyNotes, currentIndex, 1, currentNoteDate);
-        if (debug) {
-            console.log("Previous Link:", prevLink);
-            console.log("Next Link:", nextLink);
-        }
 
-        const result = [prevLink, nextLink].filter(Boolean).join(" | ");
+        // --- Build Daily Nav Part ---
+        let dailyNavPart;
+        // The currentIndex check is crucial. If it's -1, something is wrong, but we must not crash.
+        // We only attempt to get links if the current note is actually in our list.
+        if (currentIndex !== -1) {
+            const prevLink = this._createLink(allDailyNotes, currentIndex, -1, currentNoteDate);
+            const nextLink = this._createLink(allDailyNotes, currentIndex, 1, currentNoteDate);
+            dailyNavPart = [prevLink, nextLink].filter(Boolean).join(" | ");
+        }
+        
+        if (!dailyNavPart) {
+            dailyNavPart = "_No other daily notes found in this folder_";
+        }
+        if (debug) console.log("Daily Nav Part:", dailyNavPart);
+        
+        // --- Build Weekly Review Link ---
+        const weekString = currentNoteDate.format("YYYY-[W]WW");
+        const weeklyReviewLink = `[[Weekly Reviews/${weekString}]]`; // Corrected format
+        if (debug) console.log("Weekly Review Link:", weeklyReviewLink);
+
+        // --- Assemble Header ---
+        const header = `<< ${dailyNavPart} | ${weeklyReviewLink} >>`;
+        if (debug) console.log("Header:", header);
+
+        // --- Assemble Inbox Entries ---
+        const inboxLinks = this._getDailyInboxEntries(currentFile, debug);
+        let inboxContent = "";
+        if (inboxLinks.length > 0) {
+            const inboxHeader = `**Today's Captures:**`;
+            // Join with <br> for tighter lines in Obsidian's rendered view.
+            const inboxLinksString = inboxLinks.join("<br>");
+            inboxContent = `${inboxHeader}\n${inboxLinksString}`;
+        }
+        if (debug) console.log("Inbox Content:", `"${inboxContent}"`);
+
+        // --- Combine Final Output ---
+        // Join with two newlines to create a clear visual separation between header and inbox.
+        const finalOutput = [header, inboxContent].filter(Boolean).join("\n");
+
         if (debug) {
-            console.log("Final Output:", result);
-            if (!result) {
-                console.log("No previous or next links were generated. Displaying fallback message.");
-            }
+            console.log("Final Output:", `"${finalOutput}"`);
             console.log("--- DailyNoteLinkManager: Debug Mode OFF ---");
         }
         
-        return result || "_No other daily notes found in this folder_";
+        return finalOutput;
     }
 
     /**

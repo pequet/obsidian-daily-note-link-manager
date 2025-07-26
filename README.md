@@ -1,11 +1,17 @@
 # Obsidian Daily Note Link Manager
 
-A script for Obsidian's [CustomJS](https://github.com/saml-dev/obsidian-custom-js) plugin that generates inline links to the previous and next daily notes found within the same folder.
+A script for Obsidian's [CustomJS](https://github.com/saml-dev/obsidian-custom-js) plugin that generates a dynamic header for daily notes, including navigation links, a link to the weekly review, and a list of inbox items captured on the same day.
 
 ## Purpose
-This script creates "Previous" and "Next" links in daily notes based on available notes in the current folder, displaying:
-- **Yesterday** or **Tomorrow** for adjacent dates.
-- The full date (`YYYY-MM-DD`) for all other notes.
+This script enhances daily notes by creating a dynamic header and a list of related inbox entries.
+
+- **Navigation Header**:
+  - Displays links for "Yesterday" and "Tomorrow" or the full `YYYY-MM-DD` for non-adjacent dates.
+  - Includes a link to the corresponding weekly review note (e.g., `[[Weekly Reviews/2025-W30]]`).
+  - The entire header is wrapped in `<<` and `>>` markers.
+- **Inbox Entries**:
+  - Below the header, it lists all notes in the same folder that start with the same `YYYY-MM-DD` prefix as the current daily note.
+  - This is useful for quickly seeing all items captured on a specific day.
 
 It is designed to be simple and reliable, searching for notes only within the same folder as the current daily note.
 
@@ -24,7 +30,7 @@ To use this script:
 `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv }));`
 ```
 
-This will dynamically insert navigation links into your daily notes.
+This will dynamically insert the navigation header and a list of that day's inbox entries into your daily notes.
 
 ### Debugging
 If the script isn't working as expected, you can enable a debug mode to get detailed logs in the developer console.
