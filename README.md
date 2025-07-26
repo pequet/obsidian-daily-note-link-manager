@@ -1,19 +1,18 @@
 # Obsidian Daily Note Link Manager
 
-A script for Obsidian's [CustomJS](https://github.com/saml-dev/obsidian-custom-js) plugin that generates a dynamic header for daily notes, including navigation links, a link to the weekly review, and a list of inbox items captured on the same day.
+A script for Obsidian's [CustomJS](https://github.com/saml-dev/obsidian-custom-js) plugin that generates a dynamic header for Daily Notes, including navigation links, a link to the weekly review, and a list of inbox items captured on the same day.
 
 ## Purpose
-This script enhances daily notes by creating a dynamic header and a list of related inbox entries.
+This script enhances Daily Notes by creating a dynamic header and a list of related inbox entries.
 
 - **Navigation Header**:
   - Displays links for "Yesterday" and "Tomorrow" or the full `YYYY-MM-DD` for non-adjacent dates.
   - Includes a link to the corresponding weekly review note (e.g., `[[Weekly Reviews/2025-W30]]`).
-  - The entire header is wrapped in `<<` and `>>` markers.
 - **Inbox Entries**:
-  - Below the header, it lists all notes in the same folder that start with the same `YYYY-MM-DD` prefix as the current daily note.
+  - Below the header, it lists all notes in the same folder that start with the same `YYYY-MM-DD` prefix as the current Daily Note.
   - This is useful for quickly seeing all items captured on a specific day.
 
-It is designed to be simple and reliable, searching for notes only within the same folder as the current daily note.
+It is designed to be simple and reliable, searching for notes only within the same folder as the current Daily Note, or Daily Notes organized as `YYYY-MM/YYYY-MM-DD.md`.
 
 ## Prerequisites
 1.  **Obsidian**: You need to have Obsidian installed.
@@ -24,24 +23,13 @@ It is designed to be simple and reliable, searching for notes only within the sa
 ## Usage
 To use this script:
 1.  Copy the `DailyNoteLinkManager.js` file into your CustomJS script folder in Obsidian.
-2.  Place the following inline code into your daily note template.
+2.  Place the following inline code into your Daily Note template.
 
 ```javascript
 `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv }));`
 ```
 
-This will dynamically insert the navigation header and a list of that day's inbox entries into your daily notes.
-
-### Debugging
-If the script isn't working as expected, you can enable a debug mode to get detailed logs in the developer console.
-
-```javascript
-`$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true }));`
-```
-
-## Development Context
-
-This project utilizes a boilerplate designed for AI-assisted development. Key elements of this structure include:
+This will dynamically insert the navigation header and a list of that day's inbox entries into your Daily Notes.
 
 ## License
 

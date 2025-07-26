@@ -26,9 +26,12 @@
  *      Add this to your daily note template to generate the navigation links.
  *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv }));`
  *
+ *      To change the date header level (default is <h3>):
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, headerLevel: 2 }));`
+ *
  *   2. Debugging:
  *      If the script isn't working, enable debug mode to see detailed logs in the developer console.
- *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true }));`
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true, headerLevel: 3 }));`
  *
  * Changelog:
  *   1.0.0 - 2025-07-25 - Initial release.
@@ -49,17 +52,42 @@ class DailyNoteLinkManager {
      * and sorts them chronologically. This is the single source of truth for the note list.
      * @returns {TFile[]} An array of sorted daily note files.
      */
-    _getAllSortedDailyNotes(currentFile) {
+    _getAllSortedDailyNotes(currentFile, debug = false) {
         if (!currentFile || !currentFile.parent) {
+            if (debug) console.log("No current file or parent folder.");
             return [];
         }
 
         const parentFolder = currentFile.parent;
-        // The TFolder.children property gives us all files and subfolders.
-        // We filter to get only TFile objects that match our daily note format.
-        return parentFolder.children
+        const isMonthlyFolder = /^\d{4}-\d{2}$/.test(parentFolder.name);
+        if (debug) console.log(`Parent folder: ${parentFolder.name}, isMonthly: ${isMonthlyFolder}`);
+
+        let notesSource = [];
+
+        if (isMonthlyFolder && parentFolder.parent) {
+            if (debug) console.log("Monthly folder structure detected. Searching sibling folders.");
+            const grandParentFolder = parentFolder.parent;
+
+            // In Obsidian API, TFolder has a 'children' property, TFile does not. This is a safe way to identify folders.
+            const monthlyFolders = grandParentFolder.children.filter(
+                (child) => child.children && /^\d{4}-\d{2}$/.test(child.name)
+            );
+            if (debug) console.log(`Found ${monthlyFolders.length} monthly folders to search.`);
+
+            for (const folder of monthlyFolders) {
+                notesSource.push(...folder.children);
+            }
+        } else {
+            if (debug) console.log("Standard folder structure detected. Searching current folder only.");
+            notesSource = parentFolder.children;
+        }
+
+        const filteredAndSortedNotes = notesSource
             .filter(file => file.extension === 'md' && /^\d{4}-\d{2}-\d{2}$/.test(file.basename))
             .sort((a, b) => a.basename.localeCompare(b.basename));
+        
+        if (debug) console.log(`Found ${filteredAndSortedNotes.length} total daily notes after filtering.`);
+        return filteredAndSortedNotes;
     }
 
     /**
@@ -115,7 +143,7 @@ class DailyNoteLinkManager {
 
         if (debug) console.log("Current file is a valid daily note:", currentFile.path);
 
-        const allDailyNotes = this._getAllSortedDailyNotes(currentFile);
+        const allDailyNotes = this._getAllSortedDailyNotes(currentFile, debug);
         if (debug) console.log(`Found ${allDailyNotes.length} total daily notes in this folder.`);
 
         const currentIndex = allDailyNotes.findIndex(file => file.path === currentFile.path);
@@ -130,7 +158,7 @@ class DailyNoteLinkManager {
         if (currentIndex !== -1) {
             const prevLink = this._createLink(allDailyNotes, currentIndex, -1, currentNoteDate);
             const nextLink = this._createLink(allDailyNotes, currentIndex, 1, currentNoteDate);
-            dailyNavPart = [prevLink, nextLink].filter(Boolean).join(" | ");
+            dailyNavPart = [prevLink, nextLink].filter(Boolean).join(` | `);
         }
         
         if (!dailyNavPart) {
@@ -144,7 +172,7 @@ class DailyNoteLinkManager {
         if (debug) console.log("Weekly Review Link:", weeklyReviewLink);
 
         // --- Assemble Header ---
-        const header = `<< ${dailyNavPart} | ${weeklyReviewLink} >>`;
+        const header = `${dailyNavPart} | ${weeklyReviewLink}`;
         if (debug) console.log("Header:", header);
 
         // --- Assemble Inbox Entries ---
@@ -188,12 +216,29 @@ class DailyNoteLinkManager {
         const targetFile = allDailyNotes[targetIndex];
         const targetDate = window.moment(targetFile.basename, "YYYY-MM-DD");
         
-        let linkText = targetFile.basename; // Default to YYYY-MM-DD
+        let linkText;
 
-        if (offset === -1 && targetDate.isSame(currentNoteDate.clone().subtract(1, 'day'), 'day')) {
-            linkText = "Yesterday";
-        } else if (offset === 1 && targetDate.isSame(currentNoteDate.clone().add(1, 'day'), 'day')) {
-            linkText = "Tomorrow";
+        // For the 'previous' link
+        if (offset === -1) {
+            const isYesterday = targetDate.isSame(currentNoteDate.clone().subtract(1, 'day'), 'day');
+            if (isYesterday) {
+                // It's exactly one day before, show "Yesterday"
+                linkText = "< Yesterday";
+            } else {
+                // It's a gap of more than one day, show the date with more arrows
+                linkText = `<< ${targetFile.basename}`;
+            }
+        } 
+        // For the 'next' link
+        else if (offset === 1) {
+            const isTomorrow = targetDate.isSame(currentNoteDate.clone().add(1, 'day'), 'day');
+            if (isTomorrow) {
+                // It's exactly one day after, show "Tomorrow"
+                linkText = "Tomorrow >";
+            } else {
+                // It's a gap of more than one day, show the date with more arrows
+                linkText = `${targetFile.basename} >>`;
+            }
         }
 
         return `[[${targetFile.path}|${linkText}]]`;
