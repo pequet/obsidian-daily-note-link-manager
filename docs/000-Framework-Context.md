@@ -7,6 +7,9 @@ tags: notes-active
 summary: "Explains this repository's context within the parent framework."
 ---
 
+> [!NOTE]
+> This document originates from a boilerplate template which may have evolved since this project was created. The latest version can be found in the [cursor-project-boilerplate repository](https://github.com/pequet/cursor-project-boilerplate/blob/main/docs/000-Framework-Context.md).
+
 # Framework Context
 
 This public repository, while fully functional on its own, is designed to serve as a **submodule** within a larger, homegrown and highly opinionated private framework for integrated thinking. The current document is thus a "convex mirror" looking out from the repository into the framework that gives it context.
