@@ -96,7 +96,7 @@ class DailyNoteLinkManager {
      * @param {boolean} debug - Optional. Set to true to enable console logging for debugging.
      * @returns {string[]} An array of formatted markdown links for the inbox entries.
      */
-    _getDailyInboxEntries(currentFile, debug = false) {
+    _getLocalInboxEntries(currentFile, debug = false) {
         if (!currentFile || !currentFile.parent) {
             return [];
         }
@@ -115,6 +115,53 @@ class DailyNoteLinkManager {
         if (debug) console.log(`Found ${inboxFiles.length} inbox entries for ${dailyNoteBasename}.`);
 
         return inboxFiles.map(file => `[[${file.path}|${file.basename}]]`);
+    }
+
+    /**
+     * Fetches all inbox entries from the entire vault that correspond to the date of the current daily note,
+     * excluding those in the same folder as the current note.
+     * @param {TFile} currentFile - The current daily note file.
+     * @param {boolean} debug - Optional. Set to true to enable console logging for debugging.
+     * @returns {Object.<string, string[]>} - An object where keys are parent paths and values are arrays of Markdown links.
+     */
+    _getVaultInboxEntries(currentFile, debug = false) {
+        if (!currentFile) {
+            return {}; // Return an object for grouped entries
+        }
+
+        const dailyNoteBasename = currentFile.basename;
+        const localParentPath = currentFile.parent.path;
+
+        const allFiles = app.vault.getMarkdownFiles();
+
+        const vaultInboxFiles = allFiles.filter(file =>
+            file.parent.path !== localParentPath && // Exclude local files
+            file.basename.startsWith(dailyNoteBasename) &&
+            file.basename.length > dailyNoteBasename.length
+        );
+
+        if (debug) console.log(`Found ${vaultInboxFiles.length} vault-wide inbox entries for ${dailyNoteBasename}.`);
+
+        // Group by parent path
+        const groupedByPath = vaultInboxFiles.reduce((acc, file) => {
+            const parentPath = file.parent.path;
+            if (!acc[parentPath]) {
+                acc[parentPath] = [];
+            }
+            acc[parentPath].push(file); // Store the file object
+            return acc;
+        }, {});
+
+        // Sort files within each group and format the links
+        for (const path in groupedByPath) {
+            groupedByPath[path] = groupedByPath[path]
+                .sort((a, b) => a.basename.localeCompare(b.basename))
+                .map(file => `[[${file.path}|${file.basename}]]`);
+        }
+        
+        if (debug) console.log('Grouped vault entries:', groupedByPath);
+
+        return groupedByPath;
     }
 
     /**
@@ -176,18 +223,39 @@ class DailyNoteLinkManager {
         if (debug) console.log("Header:", header);
 
         // --- Assemble Inbox Entries ---
-        const inboxLinks = this._getDailyInboxEntries(currentFile, debug);
+        const localInboxLinks = this._getLocalInboxEntries(currentFile, debug);
+        const vaultInboxGroups = this._getVaultInboxEntries(currentFile, debug);
+
         let inboxContent = "";
-        if (inboxLinks.length > 0) {
+        const hasLocal = localInboxLinks.length > 0;
+        const hasVault = Object.keys(vaultInboxGroups).length > 0;
+
+        if (hasLocal || hasVault) {
             const inboxHeader = `**Today's Captures:**`;
-            // Join with <br> for tighter lines in Obsidian's rendered view.
-            const inboxLinksString = inboxLinks.join("<br>");
-            inboxContent = `${inboxHeader}\n${inboxLinksString}`;
+            const sections = [];
+
+            if (hasLocal) {
+                const localLinksString = localInboxLinks.join('<br>');
+                sections.push(`_Local:_<br>${localLinksString}<br>`);
+            }
+
+            if (hasVault) {
+                const vaultEntries = Object.entries(vaultInboxGroups)
+                    .sort(([pathA], [pathB]) => pathA.localeCompare(pathB))
+                    .map(([path, links]) => {
+                        const linkList = links.map(link => `&nbsp;&nbsp;&nbsp;&nbsp;${link}`).join('<br>');
+                        return `_${path}/_<br>${linkList}`;
+                    }).join('<br>');
+                sections.push(`${vaultEntries}`);
+            }
+            
+            // Join sections with a single <br> for tighter spacing, and use a single \n after the header.
+            inboxContent = `${inboxHeader}\n${sections.join('<br>')}`;
         }
         if (debug) console.log("Inbox Content:", `"${inboxContent}"`);
 
         // --- Combine Final Output ---
-        // Join with two newlines to create a clear visual separation between header and inbox.
+        // Join with a single newline to keep spacing tight, as it was originally.
         const finalOutput = [header, inboxContent].filter(Boolean).join("\n");
 
         if (debug) {
