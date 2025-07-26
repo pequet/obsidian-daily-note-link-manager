@@ -4,7 +4,7 @@ domain: methods
 subject: Obsidian Daily Note Link Manager
 status: active
 tags: notes-active
-summary: "Explains the boilerplate's context within the parent framework."
+summary: "Explains this repository's context within the parent framework."
 ---
 
 # Framework Context
@@ -32,54 +32,31 @@ Root/
 
 ### Level 2: The `MVC` Pattern in Projects
 
-Each `Project`, including `Obsidian`, is organized using the Model-View-Controller (MVC) architectural pattern:
+The `Core` is organized using the Model-View-Controller (MVC) architectural pattern:
 
 ```text
-Projects/
-└── Obsidian/
-    ├── Controllers/  # Logic connecting Models and Views
-    ├── Models/       # Data and business logic
-    └── Views/        # User interfaces and public-facing elements
+Core/
+├── Controllers/  # Logic connecting Models and Views
+├── Models/       # Data and business logic
+└── Views/        # User interfaces and public-facing elements
 ```
 
 -   **`Models`:** Holds the data, logic, and state.
 -   **`Views`:** Contains all user-facing interfaces. This is where public repositories like the one you're in now reside.
 -   **`Controllers`:** The operational logic that connects `Models` and `Views`.
 
-### Level 3: The `PARA` Method for Models
+Putting it all together, this public repository (`obsidian-daily-note-link-manager/`) is located within the `Views` directory, under `Public Repositories`.
 
-The `Models` directory, which acts as the data and knowledge hub for the `Obsidian` Project, is further structured using the PARA method following an action-oriented structure:
-
-```text
-Models/
-├── 0. Inbox/       # For capturing all new, unprocessed information
-├── 1. Projects/    # Actionable projects with defined goals
-├── 2. Knowledge/   # (Areas) Long-term topics of interest
-├── 3. Resources/   # Topic-based reference materials
-├── 4. Archives/    # Completed or inactive items
-└── Meta/           # Project metadata and state
-```
-
-### Locating This Repository
-
-Putting it all together, this public repository (`obsidian-daily-note-link-manager/`) is a `View` within the `Obsidian` Project.
+The path from the root is as follows:
 
 ```text
-Projects/
-└── Obsidian/
-    ├── Controllers/
-    ├── Models/
-    │   ├── 0. Inbox/
-    │   ├── 1. Projects/
-    │   ├── 2. Knowledge/
-    │   ├── 3. Resources/
-    │   ├── 4. Archives/
-    │   └── Meta/
-    └── Views/
-        └── Public Repositories/
-            └── Daily Note Link Manager/     # Grouping
+Core/
+└── Views/
+    └── Public Repositories/
+        └── Obsidian/
+            └── Daily Note Link Manager/               # Grouping
                 ├── obsidian-daily-note-link-manager/  # This Public Repo
-                └── private/                     # Assets tracked by the parent framework
+                └── private/                           # Assets tracked by the parent framework
 ```
 
 ### Level 4: Split Repository Pattern
@@ -87,8 +64,8 @@ Projects/
 This path reveals a **Public-Private Pattern** at the `Daily Note Link Manager` level, which separates the public-facing code (the submodule) from its private development assets (`private/`). These private assets, typically including `.cursor/`, `.specstory/`, `inbox/`, `memory-bank/` (and confidential files) are thus allowed to be informed and tracked by the parent framework, not the public submodule.
 
 ```text
-Daily Note Link Manager/                     # Grouping
-├── obsidian-daily-note-link-manager/                  # This Public Repo (contains symlinks to the private assets)
+Daily Note Link Manager/                          # Grouping
+├── obsidian-daily-note-link-manager/             # This Public Repo (contains symlinks to the private assets)
 │   ├── .cursor -> ../private/.cursor/
 │   ├── .specstory -> ../private/.specstory/
 │   ├── inbox -> ../private/inbox/
@@ -97,7 +74,7 @@ Daily Note Link Manager/                     # Grouping
 │   ├── docs/
 │   ├── scripts/
 │   └── src/
-└── private/                                     # Assets tracked by the parent framework
+└── private/                                      # Assets tracked by the parent framework
     ├── .cursor/
     ├── .specstory/
     ├── inbox/
