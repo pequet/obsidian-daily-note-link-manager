@@ -44,7 +44,7 @@
 // --- Class Definition ---
 class DailyNoteLinkManager {
     constructor() {
-        console.log("DailyNoteLinkManager class loaded and ready 🤖");
+        console.log("DailyNoteLinkManager class loaded and ready 📝");
     }
 
     /**
