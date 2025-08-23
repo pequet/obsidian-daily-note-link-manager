@@ -29,9 +29,23 @@
  *      To change the date header level (default is <h3>):
  *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, headerLevel: 2 }));`
  *
- *   2. Debugging:
+ *   2. Include additional file types:
+ *      To include file types beyond markdown (.md):
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, fileExtensions: ['md', 'txt', 'log'] }));`
+ *
+ *   3. Override excluded paths:
+ *      To customize which paths are excluded:
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, excludePaths: ['/archives/', '/4. Archives/'] }));`
+ *      
+ *      To include all paths (no exclusions):
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, excludePaths: [] }));`
+ *
+ *   4. Debugging:
  *      If the script isn't working, enable debug mode to see detailed logs in the developer console.
- *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true, headerLevel: 3 }));`
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true }));`
+ *
+ *   5. Full Example with all options:
+ *      `$= const { DailyNoteLinkManager } = customJS; dv.span(DailyNoteLinkManager.generateDailyLinks({ dv: dv, debug: true, fileExtensions: ['md', 'txt'], excludePaths: [] }));`
  *
  * Changelog:
  *   1.0.0 - 2025-07-25 - Initial release.
@@ -94,9 +108,10 @@ class DailyNoteLinkManager {
      * Fetches all inbox entries from the same folder that correspond to the date of the current daily note.
      * @param {TFile} currentFile - The current daily note file.
      * @param {boolean} debug - Optional. Set to true to enable console logging for debugging.
+     * @param {string[]} fileExtensions - Optional. Array of file extensions to include (default: ['md']).
      * @returns {string[]} An array of formatted markdown links for the inbox entries.
      */
-    _getLocalInboxEntries(currentFile, debug = false) {
+    _getLocalInboxEntries(currentFile, debug = false, fileExtensions = ['md','txt']) {
         if (!currentFile || !currentFile.parent) {
             return [];
         }
@@ -106,7 +121,7 @@ class DailyNoteLinkManager {
 
         const inboxFiles = parentFolder.children
             .filter(file =>
-                file.extension === 'md' &&
+                fileExtensions.includes(file.extension) &&
                 file.basename.startsWith(dailyNoteBasename) &&
                 file.basename.length > dailyNoteBasename.length // Ensure it's not the daily note itself
             )
@@ -122,9 +137,11 @@ class DailyNoteLinkManager {
      * excluding those in the same folder as the current note.
      * @param {TFile} currentFile - The current daily note file.
      * @param {boolean} debug - Optional. Set to true to enable console logging for debugging.
+     * @param {string[]} fileExtensions - Optional. Array of file extensions to include (default: ['md']).
+     * @param {string[]} excludePaths - Optional. Array of path patterns to exclude.
      * @returns {Object.<string, string[]>} - An object where keys are parent paths and values are arrays of Markdown links.
      */
-    _getVaultInboxEntries(currentFile, debug = false) {
+    _getVaultInboxEntries(currentFile, debug = false, fileExtensions = ['md','txt'], excludePaths = []) {
         if (!currentFile) {
             return {}; // Return an object for grouped entries
         }
@@ -132,13 +149,29 @@ class DailyNoteLinkManager {
         const dailyNoteBasename = currentFile.basename;
         const localParentPath = currentFile.parent.path;
 
-        const allFiles = app.vault.getMarkdownFiles();
-
-        const vaultInboxFiles = allFiles.filter(file =>
-            file.parent.path !== localParentPath && // Exclude local files
-            file.basename.startsWith(dailyNoteBasename) &&
-            file.basename.length > dailyNoteBasename.length
-        );
+        // Get all files from the vault
+        const allFiles = app.vault.getFiles();
+        
+        const vaultInboxFiles = allFiles.filter(file => {
+            // Check if file extension is in the allowed list
+            if (!fileExtensions.includes(file.extension)) {
+                return false;
+            }
+            
+            // Check if the file's path contains any excluded patterns
+            if (excludePaths.some(pattern => file.path.includes(pattern))) {
+                return false;
+            }
+            
+            // Check if file is in the same folder as current note
+            if (file.parent.path === localParentPath) {
+                return false;
+            }
+            
+            // Check if file basename starts with the daily note basename
+            return file.basename.startsWith(dailyNoteBasename) && 
+                   file.basename.length > dailyNoteBasename.length;
+        });
 
         if (debug) console.log(`Found ${vaultInboxFiles.length} vault-wide inbox entries for ${dailyNoteBasename}.`);
 
@@ -168,10 +201,17 @@ class DailyNoteLinkManager {
      * Generates the navigation links for the current daily note. This is the main public method.
      * @param {object} context - The context object passed from CustomJS, containing the dataview instance.
      * @param {boolean} [context.debug=false] - Optional. Set to true to enable console logging for debugging.
+     * @param {string[]} [context.fileExtensions=['md','txt','log']] - Optional. Array of file extensions to include.
+     * @param {string[]} [context.excludePaths=['/archives/', '/4. Archives/']] - Optional. Array of path patterns to exclude.
      * @returns {string} - The generated HTML string with the navigation links.
      */
-    generateDailyLinks({ dv, debug = false }) {
+    generateDailyLinks({ dv, debug = false, fileExtensions = ['md','txt','log'], excludePaths = ['/archives/', '/4. Archives/'] }) {
         if (debug) console.log("--- DailyNoteLinkManager: Debug Mode ON ---");
+        if (debug) {
+            console.log("Configuration:");
+            console.log("  - File Extensions:", fileExtensions);
+            console.log("  - Exclude Paths:", excludePaths);
+        }
 
         const currentFile = app.workspace.getActiveFile();
         if (debug) console.log("Current File:", currentFile ? currentFile.path : "No active file");
@@ -223,8 +263,8 @@ class DailyNoteLinkManager {
         if (debug) console.log("Header:", header);
 
         // --- Assemble Inbox Entries ---
-        const localInboxLinks = this._getLocalInboxEntries(currentFile, debug);
-        const vaultInboxGroups = this._getVaultInboxEntries(currentFile, debug);
+        const localInboxLinks = this._getLocalInboxEntries(currentFile, debug, fileExtensions);
+        const vaultInboxGroups = this._getVaultInboxEntries(currentFile, debug, fileExtensions, excludePaths);
 
         let inboxContent = "";
         const hasLocal = localInboxLinks.length > 0;
