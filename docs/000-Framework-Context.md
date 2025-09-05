@@ -1,7 +1,7 @@
 ---
 type: guide
 domain: methods
-subject: Obsidian Daily Note Link Manager
+subject: Daily Note Link Manager
 status: active
 tags: notes-active
 summary: "Explains this repository's context within the parent framework."
